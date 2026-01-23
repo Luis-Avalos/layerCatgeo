@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="es">
+  
+<head>
+  <meta charset="UTF-8">
+  <title>WMS y WFS - Documentación de APIs GeoServer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #333;
+      min-height: 100vh;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 2.5em;
+      background: linear-gradient(90deg, #3498db, #2c3e50);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .header p {
+      color: #7f8c8d;
+      font-size: 1.1em;
+      max-width: 800px;
+      margin: 10px auto 0;
+      line-height: 1.6;
+    }
+
+    .cardTodo {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      margin-bottom: 30px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 25px;
+      margin-bottom: 25px;
+      padding: 25px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 320px;
+    }
+
+    .control-group label {
+      font-weight: 700;
+      font-size: 15px;
+      color: #2c3e50;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    select {
+      padding: 12px 18px;
+      font-size: 16px;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    select:hover {
+      border-color: #2980b9;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #2980b9;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+    }
+
+    select:disabled {
+      background: #f8f9fa;
+      border-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    button {
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 32px;
+      min-width: 140px;
+      height: 48px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(52, 152, 219, 0.3);
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, #2980b9, #1c5a7e);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(52, 152, 219, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .workspace-info {
+      background: linear-gradient(135deg, #e8f4fc, #d6eaf8);
+      padding: 18px 25px;
+      margin: 20px 0;
+      border-radius: 10px;
+      border-left: 6px solid #3498db;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 15px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .workspace-info span {
+      font-weight: 800;
+      color: #2c3e50;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .maps-container {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .map-wrapper {
+      flex: 1;
+      min-width: 600px;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .map-wrapper:hover {
+      transform: translateY(-5px);
+    }
+
+    .map-title {
+      text-align: center;
+      padding: 18px;
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(90deg, #3498db, #5b8dc0);
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+  
+    #mapWMS,
+    #mapWFS {
+      width: 100%;
+      height: 450px;
+      border: none;
+    }
+
+    .service-container {
+      margin-top: 15px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    .endpoint-info {
+      background: #2c3e50;
+      padding: 20px;
+      color: #ecf0f1;
+      font-size: 14px;
+      word-break: break-all;
+      border-top: 3px solid #3498db;
+    }
+
+    .endpoint-info h4 {
+      margin-top: 0;
+      color: #3498db;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }  
+
+    .code-example {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+      position: relative;
+    }
+
+    .code-example h5 {
+      color: #3498db;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .code-example pre {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+    }
+
+    .code-example code {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #e0e0e0;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 22px;
+      right: 15px;
+      padding: 6px 12px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: #2980b9;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      color: #e74c3c;
+      text-align: center;
+      padding: 18px;
+      display: none;
+      background: linear-gradient(135deg, #fadbd8, #f5b7b1);
+      border-radius: 8px;
+      margin: 15px 0;
+      font-size: 15px;
+      font-weight: 600;
+      border-left: 5px solid #e74c3c;
+    }
+
+    .success {
+      color: #27ae60;
+      text-align: center;
+      padding: 18px;
+      display: none;
+      background: linear-gradient(135deg, #d5f4e6, #abebc6);
+      border-radius: 8px;
+      margin: 15px 0;
+      font-size: 15px;
+      font-weight: 600;
+      border-left: 5px solid #27ae60;
+    }
+
+    .language-tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #3498db;
+    }
+
+    .language-tab {
+      padding: 8px 20px;
+      background: #2c3e50;
+      color: #bdc3c7;
+      border: none;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .language-tab.active {
+      background: #3498db;
+      color: white;
+      font-weight: 700;
+    }
+
+    .language-tab:hover:not(.active) {
+      background: #34495e;
+      color: white;
+    }
+
+    @media (max-width: 1600px) {
+      .maps-container {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .map-wrapper {
+        min-width: 90%;
+      }
+      
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+      }
+      
+      .control-group {
+        min-width: auto;
+        width: 100%;
+      }
+      
+      button {
+        margin-top: 15px;
+        width: 100%;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .header h1 {
+        font-size: 2em;
+      }
+      
+      .map-wrapper {
+        min-width: 100%;
+      }
+      
+      #mapWMS,
+      #mapWFS {
+        height: 350px;
+      }
+      
+      .code-example code {
+        font-size: 11px;
+      }
+    }
+
+
+
+.swal2-toast {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    border-radius: 10px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+    padding: 15px 20px !important;
+    font-size: 15px !important;
+}
+
+.swal2-toast.swal2-success {
+    background: linear-gradient(135deg, #27ae60, #229954) !important;
+    border-left: 5px solid #1d8348 !important;
+}
+
+.swal2-toast.swal2-error {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    border-left: 5px solid #922b21 !important;
+}
+
+.swal2-toast.swal2-warning {
+    background: linear-gradient(135deg, #f39c12, #d68910) !important;
+    border-left: 5px solid #9c640c !important;
+}
+
+.swal2-toast.swal2-info {
+    background: linear-gradient(135deg, #3498db, #2980b9) !important;
+    border-left: 5px solid #1c5a7e !important;
+}
+
+.swal2-toast .swal2-title {
+    color: #1c5a7e !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.swal2-toast .swal2-icon {
+    width: 30px !important;
+    height: 30px !important;
+    margin-right: 15px !important;
+}
+  </style>
+  
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>Documentación de APIs GeoServer</h1>
+  </div>
+
+  <div class="cardTodo">
+    <div class="controls">
+      <div class="control-group">
+        <label for="workspaceSelect">Workspace:</label>
+        <select id="workspaceSelect">
+          <option value="">Cargando workspaces...</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="layerSelect">Capa:</label>
+        <select id="layerSelect" disabled>
+          <option value="">Primero selecciona un workspace</option>
+        </select>
+      </div>
+
+      <button id="loadBtn" disabled>
+        <span>Cargar Capa</span>
+      </button>
+    </div>
+
+    <div id="workspaceInfo" class="workspace-info">
+      <div>
+        <strong>Workspace:</strong> <span id="currentWorkspace"></span>
+      </div>
+      <div>
+        <strong>Capas disponibles:</strong> <span id="layerCount">0</span>
+      </div>
+    </div>
+
+    <div id="loading" class="loading"></div>
+    <div id="error" class="error"></div>
+    <div id="success" class="success"></div>
+
+    <div class="maps-container">
+      <div class="map-wrapper">
+        <div class="map-title">Servicio WMS</div>
+        <div id="mapWMS"></div>
+        
+        <div class="service-container">
+          <div class="endpoint-info">
+            <h4>Endpoint WMS:</h4>
+            <div id="wmsEndpoint">Selecciona una capa para ver el endpoint</div>
+          </div>
+          
+          <div class="code-example">
+            <div class="language-tabs">
+              <button class="language-tab active" data-language="leaflet" data-service="wms">Leaflet</button>
+              <!-- <button class="language-tab" data-language="google" data-service="wms">Google Maps</button> -->
+            </div>
+            
+            <h5>Ejemplo de implementación:</h5>
+            <pre id="wmsLeafletCode"><code class="language-javascript">// Espera a que cargue una capa...</code></pre>
+            <pre id="wmsGoogleCode" style="display: none;"><code class="language-javascript">// Espera a que cargue una capa...</code></pre>
+            <button class="copy-btn" data-target="wmsLeafletCode">Copiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mapa WFS -->
+      <div class="map-wrapper">
+        <div class="map-title">Servicio WFS</div>
+        <div id="mapWFS"></div>
+        
+        <div class="service-container">
+          <div class="endpoint-info">
+            <h4>Endpoint WFS:</h4>
+            <div id="wfsEndpoint">Selecciona una capa para ver el endpoint</div>
+          </div>
+          
+          <div class="code-example">
+            <div class="language-tabs">
+              <button class="language-tab active" data-language="leaflet" data-service="wfs">Leaflet</button>
+              <!-- <button class="language-tab" data-language="google" data-service="wfs">Google Maps</button> -->
+            </div>
+            
+            <h5>Ejemplo de implementación:</h5>
+            <pre id="wfsLeafletCode"><code class="language-javascript">// Espera a que cargue una capa...</code></pre>
+            <pre id="wfsGoogleCode" style="display: none;"><code class="language-javascript">// Espera a que cargue una capa...</code></pre>
+            <button class="copy-btn" data-target="wfsLeafletCode">Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+  
+  <script>
+    // Variables globales
+    let mapWMS = null;
+    let mapWFS = null;
+    let currentWorkspace = null;
+    let currentLayer = null;
+    let wmsLayer = null;
+    let wfsLayer = null;
+    
+    // URLs de la API
+    const workspacesApi = "http://localhost:3000/api/geoserver/workspaces";
+    const baseLayersApi = "http://localhost:3000/api/geoserver/layers";
+
+    // Configuración de SweetAlert2 toast
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+
+    // Función para mostrar toast de éxito
+    function showSuccess(message) {
+        Toast.fire({
+            icon: 'success',
+            title: message
+        });
+    }
+
+    // Función para mostrar toast de error
+    function showError(message) {
+        Toast.fire({
+            icon: 'error',
+            title: message
+        });
+    }
+
+    // Función para mostrar toast de advertencia
+    function showWarning(message) {
+        Toast.fire({
+            icon: 'warning',
+            title: message
+        });
+    }
+
+    // Función para mostrar toast de información
+    function showInfo(message) {
+        Toast.fire({
+            icon: 'info',
+            title: message
+        });
+    }
+
+    // Inicializar mapas
+    function initMaps() {
+      const center = [20.71, -103.40];
+      const zoom = 15;
+
+      // Inicializar mapa WMS
+      mapWMS = L.map("mapWMS").setView(center, zoom);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(mapWMS);
+
+      // Inicializar mapa WFS
+      mapWFS = L.map("mapWFS").setView(center, zoom);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(mapWFS);
+    }
+
+    // Cargar lista de workspaces
+    async function loadWorkspaces() {
+        const workspaceSelect = document.getElementById("workspaceSelect");
+        const loading = document.getElementById("loading");
+
+        loading.style.display = "block";
+        workspaceSelect.disabled = true;
+
+        try {
+            const response = await fetch(workspacesApi);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            workspaceSelect.innerHTML = '<option value="">Selecciona un workspace</option>';
+
+            if (!data.workspaces || data.workspaces.length === 0) {
+                throw new Error("No se encontraron workspaces");
+            }
+
+            // Ordenar workspaces por nombre
+            data.workspaces.sort((a, b) => a.name.localeCompare(b.name));
+
+            data.workspaces.forEach(workspace => {
+                const option = document.createElement("option");
+                option.value = workspace.name;
+                option.textContent = workspace.name;
+                workspaceSelect.appendChild(option);
+            });
+
+            // "geomatica" por defecto
+            const defaultWorkspace = "geomatica";
+            if (data.workspaces.find(w => w.name === defaultWorkspace)) {
+                workspaceSelect.value = defaultWorkspace;
+                await onWorkspaceChange();
+            } else if (data.workspaces.length > 0) {
+                workspaceSelect.value = data.workspaces[0].name;
+                await onWorkspaceChange();
+            }
+
+            workspaceSelect.disabled = false;
+            showSuccess(`${data.workspaces.length} workspaces cargados`);
+
+        } catch (err) {
+            console.error("Error cargando workspaces:", err);
+            showError(`Error al cargar workspaces: ${err.message}`);
+            workspaceSelect.innerHTML = '<option value="">Error al cargar workspaces</option>';
+        } finally {
+            loading.style.display = "none";
+        }
+    }
+
+    // Evento cuando cambia el workspace
+    async function onWorkspaceChange() {
+        const workspaceSelect = document.getElementById("workspaceSelect");
+        const layerSelect = document.getElementById("layerSelect");
+        const loadBtn = document.getElementById("loadBtn");
+        const workspaceInfo = document.getElementById("workspaceInfo");
+        const loading = document.getElementById("loading");
+
+        const workspace = workspaceSelect.value;
+        
+        if (!workspace) {
+            layerSelect.disabled = true;
+            layerSelect.innerHTML = '<option value="">Primero selecciona un workspace</option>';
+            loadBtn.disabled = true;
+            workspaceInfo.style.display = "none";
+            return;
+        }
+
+        currentWorkspace = workspace;
+        layerSelect.disabled = true;
+        layerSelect.innerHTML = '<option value="">Cargando capas...</option>';
+        loadBtn.disabled = true;
+        loading.style.display = "block";
+
+        try {
+            // Cargar capas del workspace seleccionado
+            const layersApi = `${baseLayersApi}/${encodeURIComponent(workspace)}`;
+            const response = await fetch(layersApi);
+            
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            // Si hay un error en la respuesta
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            // Información del workspace
+            document.getElementById("currentWorkspace").textContent = workspace;
+            const layerCount = data.count || data.layers?.length || 0;
+            document.getElementById("layerCount").textContent = layerCount;
+            workspaceInfo.style.display = "flex";
+
+            // Cargar capas en el select
+            layerSelect.innerHTML = '<option value="">Selecciona una capa</option>';
+
+            if (data.layers && data.layers.length > 0) {
+                // Ordenar capas por nombre
+                data.layers.sort((a, b) => a.name.localeCompare(b.name));
+
+                // Agregar opciones
+                data.layers.forEach(layer => {
+                    const option = document.createElement("option");
+                    option.value = layer.name;
+                    option.textContent = `${layer.name} - ${layer.title || 'Sin título'}`;
+                    layerSelect.appendChild(option);
+                });
+
+                if (data.layers.length > 0) {
+                    layerSelect.value = data.layers[0].name;
+                    currentLayer = data.layers[0].name;
+                    loadBtn.disabled = false;
+                }
+                
+                showSuccess(`${layerCount} capas cargadas en ${workspace}`);
+            } else {
+                layerSelect.innerHTML = '<option value="">No hay capas en este workspace</option>';
+                showWarning(`No se encontraron capas en ${workspace}`);
+            }
+
+            layerSelect.disabled = false;
+
+        } catch (err) {
+            console.error("Error cargando capas del workspace:", err);
+            showError(`Error al cargar capas: ${err.message}`);
+            layerSelect.innerHTML = '<option value="">Error al cargar capas</option>';
+            workspaceInfo.style.display = "none";
+        } finally {
+            loading.style.display = "none";
+        }
+    }
+
+    // Actualizar capa seleccionada
+    async function updateLayer() {
+        const workspaceSelect = document.getElementById("workspaceSelect");
+        const layerSelect = document.getElementById("layerSelect");
+        const loading = document.getElementById("loading");
+
+        const workspace = workspaceSelect.value;
+        const layerName = layerSelect.value;
+
+        if (!workspace || !layerName) {
+            showWarning("Selecciona un workspace y una capa primero");
+            return;
+        }
+
+        currentWorkspace = workspace;
+        currentLayer = layerName;
+
+        loading.style.display = "block";
+
+        // Generar endpoints
+        const wmsEndpoint = `http://localhost:3000/api/geoserver/wms/${workspace}/${encodeURIComponent(layerName)}`;
+        const wfsEndpoint = `http://localhost:3000/api/geoserver/wfs/${workspace}/${encodeURIComponent(layerName)}`;
+
+        document.getElementById("wmsEndpoint").textContent = wmsEndpoint;
+        document.getElementById("wfsEndpoint").textContent = wfsEndpoint;
+
+        generateCodeExamples(workspace, layerName, wmsEndpoint, wfsEndpoint);
+
+        try {
+            await loadWMS(workspace, layerName);
+            await loadWFS(workspace, layerName);
+
+            showSuccess(` Capa "${layerName}" cargada exitosamente`);
+
+        } catch (err) {
+            console.error("Error actualizando capa:", err);
+            showError(` Error: ${err.message}`);
+        } finally {
+            loading.style.display = "none";
+        }
+    }
+
+    function generateCodeExamples(workspace, layerName, wmsEndpoint, wfsEndpoint) {
+      const fullLayerName = `${workspace}:${layerName}`;
+      
+      // Código para WMS en Leaflet
+      const wmsLeafletCode = `// Leaflet - WMS
+// HTML: <div id="map" style="height: 500px;"></div>
+
+// Inicializar mapa
+const map = L.map('map').setView([20.71, -103.40], 15);
+
+// Capa base
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Capa WMS
+const wmsLayer = L.tileLayer.wms('${wmsEndpoint}', {
+    layers: '${fullLayerName}',
+    format: 'image/png',
+    transparent: true,
+    version: '1.1.1',
+    attribution: '${workspace}:${layerName}'
+}).addTo(map);
+
+console.log('Capa WMS cargada: ${fullLayerName}');`;
+
+      // Código para WFS en Leaflet (actualizado con el formato correcto)
+      const wfsLeafletCode = `// Leaflet - WFS
+// HTML: <div id="map" style="height: 500px;"></div>
+// Asegúrate de tener Leaflet cargado
+
+// Inicializar mapa
+const map = L.map('map').setView([20.71, -103.40], 15);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Cargar datos WFS (GeoJSON)
+fetch('${wfsEndpoint}?outputFormat=application/json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        const wfsLayer = L.geoJSON(data, {
+            style: {
+                color: '#3498db',
+                weight: 2,
+                opacity: 0.8,
+                fillColor: '#3498db',
+                fillOpacity: 0.3
+            },
+            onEachFeature: (feature, layer) => {
+                if (feature.properties) {
+                    let popupContent = '<h4>${layerName}</h4><hr>';
+                    Object.entries(feature.properties).forEach(([key, value]) => {
+                        popupContent += \`<b>\${key}:</b> \${value}<br>\`;
+                    });
+                    layer.bindPopup(popupContent);
+                }
+            }
+        }).addTo(map);
+        
+        // Ajustar vista al contenido
+        if (wfsLayer.getBounds().isValid()) {
+            map.fitBounds(wfsLayer.getBounds().pad(0.1));
+        }
+    })
+    .catch(error => {
+        console.error('Error cargando WFS:', error);
+        alert('Error al cargar la capa WFS: ' + error.message);
+    });`;
+
+      // Código para Google Maps
+      const googleMapsCode = `// Google Maps API
+// Requiere: https://maps.googleapis.com/maps/api/js?key=TU_API_KEY
+// Y la librería de WMS: https://github.com/GEOLYTIX/google-maps-wms
+
+const map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 20.71, lng: -103.40 },
+    zoom: 15
+});
+
+// Para WMS necesitarías una librería adicional
+// Ejemplo con google-maps-wms:
+// const wmsLayer = new WMSLayer(map, {
+//     url: '${wmsEndpoint}',
+//     layers: '${fullLayerName}',
+//     format: 'image/png',
+//     transparent: true,
+//     version: '1.1.1'
+// });
+
+// Para WFS, normalmente se convierte a GeoJSON primero
+fetch('${wfsEndpoint}?outputFormat=application/json')
+    .then(response => response.json())
+    .then(geojson => {
+        // Convertir GeoJSON a objetos de Google Maps
+        // Nota: Google Maps no tiene soporte nativo para GeoJSON WFS
+        // Se recomienda usar una librería como Terraformer
+    });`;
+
+      // Actualizar los elementos de código
+      document.getElementById('wmsLeafletCode').innerHTML = `<code class="language-javascript">${escapeHtml(wmsLeafletCode)}</code>`;
+      document.getElementById('wfsLeafletCode').innerHTML = `<code class="language-javascript">${escapeHtml(wfsLeafletCode)}</code>`;
+      document.getElementById('wmsGoogleCode').innerHTML = `<code class="language-javascript">${escapeHtml(googleMapsCode)}</code>`;
+      document.getElementById('wfsGoogleCode').innerHTML = `<code class="language-javascript">${escapeHtml(googleMapsCode)}</code>`;
+
+      // Resaltar sintaxis con Prism
+      if (window.Prism) {
+        Prism.highlightAll();
+      }
+    }
+
+    // Función auxiliar para escapar HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Cargar capa WMS
+    async function loadWMS(workspace, layerName) {
+      try {
+        // Remover capa anterior si existe
+        if (wmsLayer && mapWMS.hasLayer(wmsLayer)) {
+          mapWMS.removeLayer(wmsLayer);
+        }
+
+        const fullLayerName = `${workspace}:${layerName}`;
+        const wmsUrl = `http://localhost:3000/api/geoserver/wms/${workspace}/${encodeURIComponent(layerName)}`;
+
+        wmsLayer = L.tileLayer.wms(wmsUrl, {
+          layers: fullLayerName,
+          format: "image/png",
+          transparent: true,
+          version: "1.1.1",
+          attribution: `Capa: ${fullLayerName}`
+        }).addTo(mapWMS);
+
+        console.log("WMS cargado exitosamente:", fullLayerName);
+
+      } catch (err) {
+        console.error("Error cargando WMS:", err);
+        throw new Error(`Error WMS: ${err.message}`);
+      }
+    }
+
+    // Cargar capa WFS (CORREGIDO)
+    async function loadWFS(workspace, layerName) {
+      try {
+        // Remover capa anterior si existe
+        if (wfsLayer && mapWFS.hasLayer(wfsLayer)) {
+          mapWFS.removeLayer(wfsLayer);
+        }
+
+        const fullLayerName = `${workspace}:${layerName}`;
+        // AGREGAR outputFormat=application/json para forzar GeoJSON
+        const wfsUrl = `http://localhost:3000/api/geoserver/wfs/${workspace}/${encodeURIComponent(layerName)}?outputFormat=application/json`;
+
+        console.log("Cargando WFS desde:", wfsUrl);
+        
+        const response = await fetch(wfsUrl);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`WFS ${response.status}:`, errorText);
+          throw new Error(`Error ${response.status}: No se pudo cargar WFS`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        let geojson;
+
+        // Verificar si es JSON o XML
+        if (contentType && contentType.includes("application/json")) {
+          geojson = await response.json();
+        } else if (contentType && contentType.includes("text/xml") || contentType.includes("application/xml")) {
+          // Si es XML, intentar parsearlo como texto primero
+          const text = await response.text();
+          console.warn("El servidor devolvió XML en lugar de JSON. Contenido:", text.substring(0, 500));
+          
+          // Verificar si es un error XML
+          if (text.includes('ServiceException')) {
+            throw new Error("El servidor GeoServer devolvió un error XML");
+          }
+          
+          // Si no es error, intentar ver si hay JSON dentro
+          try {
+            // Buscar JSON dentro del XML
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              geojson = JSON.parse(jsonMatch[0]);
+            } else {
+              throw new Error("No se pudo extraer JSON del XML");
+            }
+          } catch (parseErr) {
+            console.error("Error parseando XML como JSON:", parseErr);
+            throw new Error("El servidor devolvió XML pero no se pudo convertir a GeoJSON. Verifica que la capa soporte WFS.");
+          }
+        } else {
+          // Intentar como texto y ver qué es
+          const text = await response.text();
+          console.log("Respuesta WFS (primeros 500 chars):", text.substring(0, 500));
+          
+          try {
+            geojson = JSON.parse(text);
+          } catch (parseErr) {
+            console.error("Error parseando respuesta WFS:", parseErr);
+            
+            // Si comienza con <?xml, es XML
+            if (text.trim().startsWith('<?xml')) {
+              throw new Error("El servidor devolvió XML. La capa WFS necesita configurarse para devolver GeoJSON.");
+            } else {
+              throw new Error("Formato de respuesta no válido. Se esperaba JSON.");
+            }
+          }
+        }
+
+        if (geojson.error) {
+          throw new Error(geojson.error);
+        }
+
+        addWFSLayer(geojson, fullLayerName);
+        console.log("WFS cargado exitosamente:", fullLayerName);
+
+      } catch (err) {
+        console.error("Error cargando WFS:", err);
+        // Proporcionar un mensaje más específico
+        let errorMsg = `Error WFS: ${err.message}`;
+        if (err.message.includes('XML')) {
+          errorMsg += "\n\nSolución: Configura el WFS de GeoServer para usar outputFormat=application/json o agrega '?outputFormat=application/json' al endpoint.";
+        }
+        throw new Error(errorMsg);
+      }
+    }
+
+    // Agregar capa WFS al mapa
+    function addWFSLayer(geojson, fullLayerName) {
+      wfsLayer = L.geoJSON(geojson, {
+        style: {
+          color: "#e74c3c",
+          weight: 2,
+          opacity: 0.8,
+          fillColor: "#e74c3c",
+          fillOpacity: 0.3
+        },
+        onEachFeature: (feature, layer) => {
+          if (feature.properties) {
+            let popupContent = `<h4>${fullLayerName}</h4><hr>`;
+            Object.entries(feature.properties).forEach(([key, value]) => {
+              if (value !== null && value !== undefined) {
+                popupContent += `<b>${key}:</b> ${value}<br>`;
+              }
+            });
+            layer.bindPopup(popupContent);
+          }
+        }
+      }).addTo(mapWFS);
+
+      if (wfsLayer.getBounds().isValid()) {
+        mapWFS.fitBounds(wfsLayer.getBounds().pad(0.1));
+      }
+    }
+
+    // Manejar clics en las pestañas de lenguaje
+    function handleLanguageTabClick(event) {
+      const tab = event.target;
+      const service = tab.dataset.service;
+      const language = tab.dataset.language;
+      
+      // Actualizar todas las pestañas del mismo servicio
+      const allTabs = document.querySelectorAll(`[data-service="${service}"]`);
+      allTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      // Mostrar/ocultar el código correspondiente
+      const leafletCode = document.getElementById(`${service}LeafletCode`);
+      const googleCode = document.getElementById(`${service}GoogleCode`);
+      
+      if (language === 'leaflet') {
+        leafletCode.style.display = 'block';
+        googleCode.style.display = 'none';
+      } else {
+        leafletCode.style.display = 'none';
+        googleCode.style.display = 'block';
+      }
+      
+      // Actualizar botón de copiar
+      const copyBtn = tab.closest('.code-example').querySelector('.copy-btn');
+      copyBtn.dataset.target = language === 'leaflet' ? 
+        `${service}LeafletCode` : 
+        `${service}GoogleCode`;
+    }
+
+    // Copiar código al portapapeles
+    function copyToClipboard(targetId) {
+      const codeElement = document.getElementById(targetId);
+      const code = codeElement.textContent;
+      
+      navigator.clipboard.writeText(code).then(() => {
+        showSuccess('Código copiado al portapapeles');
+      }).catch(err => {
+        console.error('Error al copiar:', err);
+        showError('Error al copiar el código');
+      });
+    }
+
+    // Inicializar eventos
+    function initEvents() {
+      document.getElementById("workspaceSelect").addEventListener("change", onWorkspaceChange);
+      
+      document.getElementById("layerSelect").addEventListener("change", function() {
+        const loadBtn = document.getElementById("loadBtn");
+        loadBtn.disabled = !this.value;
+      });
+
+      document.getElementById("loadBtn").addEventListener("click", updateLayer);
+
+      // Pestañas de lenguaje
+      document.querySelectorAll('.language-tab').forEach(tab => {
+        tab.addEventListener('click', handleLanguageTabClick);
+      });
+
+      // Botones de copian
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          copyToClipboard(this.dataset.target);
+        });
+      });
+
+      // Atajos de teclado
+      document.getElementById("workspaceSelect").addEventListener("keypress", function(e) {
+        if (e.key === 'Enter') {
+          onWorkspaceChange();
+        }
+      });
+
+      document.getElementById("layerSelect").addEventListener("keypress", function(e) {
+        if (e.key === 'Enter' && this.value) {
+          updateLayer();
+        }
+      });
+    }
+
+    // Inicializar la aplicación
+    document.addEventListener("DOMContentLoaded", function() {
+      initMaps();
+      initEvents();
+      loadWorkspaces();
+    });
+  </script>
+
+</body>
+
+</html>
