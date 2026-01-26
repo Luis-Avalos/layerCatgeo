@@ -546,8 +546,8 @@
     let wfsLayer = null;
     
     // URLs de la API
-    const workspacesApi = "http://localhost:3000/api/geoserver/workspaces";
-    const baseLayersApi = "http://localhost:3000/api/geoserver/layers";
+    const workspacesApi = "https://geoservicios.zapopan.gob.mx/api/geoserver/workspaces";
+    const baseLayersApi = "https://geoservicios.zapopan.gob.mx/api/geoserver/layers";
 
     // Configuración de SweetAlert2 toast
     const Toast = Swal.mixin({
@@ -773,8 +773,8 @@
         loading.style.display = "block";
 
         // Generar endpoints
-        const wmsEndpoint = `http://localhost:3000/api/geoserver/wms/${workspace}/${encodeURIComponent(layerName)}`;
-        const wfsEndpoint = `http://localhost:3000/api/geoserver/wfs/${workspace}/${encodeURIComponent(layerName)}`;
+        const wmsEndpoint = `https://geoservicios.zapopan.gob.mx/api/geoserver/wms/${workspace}/${encodeURIComponent(layerName)}`;
+        const wfsEndpoint = `https://geoservicios.zapopan.gob.mx/api/geoserver/wfs/${workspace}/${encodeURIComponent(layerName)}`;
 
         document.getElementById("wmsEndpoint").textContent = wmsEndpoint;
         document.getElementById("wfsEndpoint").textContent = wfsEndpoint;
@@ -928,7 +928,7 @@ fetch('${wfsEndpoint}?outputFormat=application/json')
         }
 
         const fullLayerName = `${workspace}:${layerName}`;
-        const wmsUrl = `http://localhost:3000/api/geoserver/wms/${workspace}/${encodeURIComponent(layerName)}`;
+        const wmsUrl = `https://geoservicios.zapopan.gob.mx/api/geoserver/wms/${workspace}/${encodeURIComponent(layerName)}`;
 
         wmsLayer = L.tileLayer.wms(wmsUrl, {
           layers: fullLayerName,
@@ -956,7 +956,7 @@ fetch('${wfsEndpoint}?outputFormat=application/json')
 
         const fullLayerName = `${workspace}:${layerName}`;
         // AGREGAR outputFormat=application/json para forzar GeoJSON
-        const wfsUrl = `http://localhost:3000/api/geoserver/wfs/${workspace}/${encodeURIComponent(layerName)}?outputFormat=application/json`;
+        const wfsUrl = `https://geoservicios.zapopan.gob.mx/api/geoserver/wfs/${workspace}/${encodeURIComponent(layerName)}?outputFormat=application/json`;
 
         console.log("Cargando WFS desde:", wfsUrl);
         

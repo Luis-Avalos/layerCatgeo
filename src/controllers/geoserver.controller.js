@@ -28,16 +28,22 @@ export const listWorkspaces = async (req, res) => {
     const data = await response.json();
     const workspaces = data.workspaces.workspace || [];
 
-    const formattedWorkspaces = workspaces.map(ws => ({
-      name: ws.name,
-      href: ws.href
-    }));
+    const workspace = workspaces.find(ws => ws.name === "wms_catastro");
 
-    res.json({
-      success: true,
-      count: formattedWorkspaces.length,
-      workspaces: formattedWorkspaces
-    });
+if (!workspace) {
+  return res.status(404).json({
+    success: false,
+    message: "Workspace wms_catastro no encontrado"
+  });
+}
+
+res.json({
+  success: true,
+  workspace: {
+    name: workspace.name,
+    href: workspace.href
+  }
+});
 
   } catch (err) {
     console.error("Error listWorkspaces:", err);
@@ -90,17 +96,24 @@ const getWorkspacesFromCapabilities = async (req, res) => {
       extractWorkspaces(layers);
     }
 
-    const workspaces = Array.from(workspacesSet).map(name => ({
-      name,
-      href: `${geoserverHost}/rest/workspaces/${name}`
-    }));
+    const workspaceName = "wms_catastro";
 
-    res.json({
-      success: true,
-      count: workspaces.length,
-      workspaces,
-      note: "Workspaces obtenidos desde GetCapabilities (puede haber algunos faltantes)"
-    });
+if (!workspacesSet.has(workspaceName)) {
+  return res.status(404).json({
+    success: false,
+    message: "Workspace wms_catastro no encontrado (GetCapabilities)"
+  });
+}
+
+res.json({
+  success: true,
+  workspace: {
+    name: workspaceName,
+    href: `${geoserverHost}/rest/workspaces/${workspaceName}`
+  },
+  source: "GetCapabilities"
+});
+
 
   } catch (err) {
     console.error("Error getWorkspacesFromCapabilities:", err);
