@@ -646,16 +646,7 @@
                 workspaceSelect.appendChild(option);
             });
 
-            // "geomatica" por defecto
-            const defaultWorkspace = "geomatica";
-            if (data.workspaces.find(w => w.name === defaultWorkspace)) {
-                workspaceSelect.value = defaultWorkspace;
-                await onWorkspaceChange();
-            } else if (data.workspaces.length > 0) {
-                workspaceSelect.value = data.workspaces[0].name;
-                await onWorkspaceChange();
-            }
-
+        
             workspaceSelect.disabled = false;
             showSuccess(`${data.workspaces.length} workspaces cargados`);
 

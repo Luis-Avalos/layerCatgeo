@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model usuarios_cat {
+  id              Int               @id(map: "usuarios_ciudadanos_pkey") @default(autoincrement())
+  nombre          String            @db.VarChar(100)
+  apellido        String            @db.VarChar(100)
+  email           String            @unique(map: "usuarios_ciudadanos_email_key") @db.VarChar(150)
+  password_hash   String
+  foto_perfil_url String?
+  fecha_registro  DateTime?         @default(now()) @db.Timestamp(6)
+  rol             String?           @db.VarChar
+  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  user_layers     user_layers[]
+  user_workspaces user_workspaces[]
+}
+
+model password_resets_cat {
+  id         Int      @id(map: "password_resets_muc_pkey") @default(autoincrement())
+  email      String   @db.VarChar(255)
+  codigo     String   @db.VarChar(6)
+  expires_at DateTime @db.Timestamp(6)
+  used       Boolean? @default(false)
+}
+
+model user_layers {
+  id           Int          @id @default(autoincrement())
+  usuario_id   Int
+  workspace    String       @db.VarChar(100)
+  layer        String       @db.VarChar(150)
+  created_at   DateTime?    @default(now()) @db.Timestamp(6)
+  usuarios_cat usuarios_cat @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_layers_usuario")
+
+  @@unique([usuario_id, workspace, layer], map: "uq_user_layer")
+  @@index([usuario_id, workspace, layer], map: "idx_user_layers_lookup")
+}
+
+model user_workspaces {
+  id           Int          @id @default(autoincrement())
+  usuario_id   Int
+  workspace    String       @db.VarChar(100)
+  created_at   DateTime?    @default(now()) @db.Timestamp(6)
+  usuarios_cat usuarios_cat @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_workspaces_usuario")
+
+  @@unique([usuario_id, workspace], map: "uq_user_workspace")
+  @@index([usuario_id, workspace], map: "idx_user_workspaces_lookup")
+}

@@ -1,4 +1,4 @@
-// file: controllers/geoserver.controller.js
+
 import fetch from "node-fetch";
 import xml2js from "xml2js";
 
@@ -341,40 +341,34 @@ export const listAllLayers = async (req, res) => {
 export const getWFS = async (req, res) => {
   try {
     const { workspace, layer } = req.params;
-    
-    if (!workspace || !layer) {
-      return res.status(400).json({ 
-        error: "Debes especificar workspace y capa" 
-      });
-    }
-
     const geoserverHost = process.env.GEOSERVER_HOST;
 
-    if (!geoserverHost) {
-      return res.status(500).json({ error: "GeoServer no está configurado" });
-    }
+    const url = `${geoserverHost}/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=${workspace}:${layer}&outputFormat=application/json`;
 
-    const url = `${geoserverHost}/${workspace}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=${workspace}:${encodeURIComponent(layer)}&outputFormat=application/json`;
+    console.log("WFS URL:", url);
 
     const response = await fetch(url);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error WFS para ${workspace}:${layer}:`, response.status, errorText);
-      return res.status(response.status).json({ 
-        error: "No se pudo obtener el WFS",
-        details: errorText.substring(0, 200) 
+    const contentType = response.headers.get("content-type");
+    console.log("Content-Type:", contentType);
+
+    if (!contentType?.includes("application/json")) {
+      const text = await response.text();
+      console.error("GeoServer devolvió:", text.substring(0, 300));
+      return res.status(500).json({
+        error: "GeoServer no devolvió JSON",
+        details: text.substring(0, 200)
       });
     }
 
     const data = await response.json();
-    res.json(data);
+    return res.json(data);
 
   } catch (error) {
     console.error("Error WFS:", error);
-    res.status(500).json({ 
-      error: "Error al obtener datos WFS",
-      details: error.message 
+    return res.status(500).json({
+      error: "Error al obtener WFS",
+      details: error.message
     });
   }
 };
@@ -402,7 +396,8 @@ export const getWMS = async (req, res) => {
       queryParams.set("version", "1.1.1");
       queryParams.set("request", "GetCapabilities");
 
-      const url = `${geoserverHost}/${workspace}/wms?${queryParams.toString()}`;
+      // const url = `${geoserverHost}/${workspace}/wms?${queryParams.toString()}`;
+      const url = `${geoserverHost}/wms?${queryParams.toString()}`;
       const response = await fetch(url);
       const xml = await response.text();
       return res.type("application/xml").send(xml);
