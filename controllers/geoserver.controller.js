@@ -12,6 +12,7 @@ export const listWorkspaces = async (req, res) => {
     }
 
     const url = `${geoserverHost}/rest/workspaces`;
+
     const response = await fetch(url, {
       headers: {
         'Authorization': 'Basic ' + Buffer.from(
@@ -21,30 +22,25 @@ export const listWorkspaces = async (req, res) => {
       }
     });
 
+    
     if (!response.ok) {
       return await getWorkspacesFromCapabilities(req, res);
     }
 
     const data = await response.json();
-    const workspaces = data.workspaces.workspace || [];
 
-    console.log(workspaces)
+    const workspaces = data?.workspaces?.workspace || [];
 
-    const workspace = workspaces.find(ws => ws.name === "wms_catastro");
-
-    if (!workspace) {
-      return res.status(404).json({
-        success: false,
-        message: "Workspace wms_catastro no encontrado"
-      });
-    }
+    
+    const formatted = workspaces.map(ws => ({
+      name: ws.name,
+      href: ws.href
+    }));
 
     res.json({
       success: true,
-      workspace: {
-        name: workspace.name,
-        href: workspace.href
-      }
+      total: formatted.length,
+      workspaces: formatted
     });
 
   } catch (err) {
@@ -68,7 +64,8 @@ const getWorkspacesFromCapabilities = async (req, res) => {
     const parser = new xml2js.Parser({ explicitArray: true });
     const result = await parser.parseStringPromise(xml);
 
-    const layers = result?.WMS_Capabilities?.Capability?.[0]?.Layer ||
+    const layers =
+      result?.WMS_Capabilities?.Capability?.[0]?.Layer ||
       result?.WMT_MS_Capabilities?.Capability?.[0]?.Layer ||
       result?.Capability?.[0]?.Layer ||
       result?.Layer;
@@ -80,6 +77,7 @@ const getWorkspacesFromCapabilities = async (req, res) => {
 
       if (node.Name && Array.isArray(node.Name)) {
         const name = node.Name[0];
+
         if (name && name.includes(':')) {
           const workspace = name.split(':')[0];
           workspacesSet.add(workspace);
@@ -87,7 +85,10 @@ const getWorkspacesFromCapabilities = async (req, res) => {
       }
 
       if (node.Layer) {
-        const layerArray = Array.isArray(node.Layer) ? node.Layer : [node.Layer];
+        const layerArray = Array.isArray(node.Layer)
+          ? node.Layer
+          : [node.Layer];
+
         layerArray.forEach(layer => extractWorkspaces(layer));
       }
     };
@@ -98,27 +99,22 @@ const getWorkspacesFromCapabilities = async (req, res) => {
       extractWorkspaces(layers);
     }
 
-    const workspaceName = "wms_catastro";
-
-    if (!workspacesSet.has(workspaceName)) {
-      return res.status(404).json({
-        success: false,
-        message: "Workspace wms_catastro no encontrado (GetCapabilities)"
-      });
-    }
+    
+    const workspaces = Array.from(workspacesSet).map(name => ({
+      name,
+      href: `${geoserverHost}/rest/workspaces/${name}`
+    }));
 
     res.json({
       success: true,
-      workspace: {
-        name: workspaceName,
-        href: `${geoserverHost}/rest/workspaces/${workspaceName}`
-      },
+      total: workspaces.length,
+      workspaces,
       source: "GetCapabilities"
     });
 
-
   } catch (err) {
     console.error("Error getWorkspacesFromCapabilities:", err);
+
     res.status(500).json({
       error: "Error al listar workspaces",
       details: err.message
@@ -356,8 +352,6 @@ export const listAllLayers = async (req, res) => {
 export const getWFS = async (req, res) => {
   try {
     const { workspace, layer } = req.params;
-<<<<<<< HEAD:controllers/geoserver.controller.js
-=======
 
     if (!workspace || !layer) {
       return res.status(400).json({
@@ -365,7 +359,6 @@ export const getWFS = async (req, res) => {
       });
     }
 
->>>>>>> b041f47e0c8a5ca7bd900b52b1b6d2ac82ef3683:src/controllers/geoserver.controller.js
     const geoserverHost = process.env.GEOSERVER_HOST;
 
     const url = `${geoserverHost}/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=${workspace}:${layer}&outputFormat=application/json`;
@@ -374,24 +367,12 @@ export const getWFS = async (req, res) => {
 
     const response = await fetch(url);
 
-<<<<<<< HEAD:controllers/geoserver.controller.js
-    const contentType = response.headers.get("content-type");
-    console.log("Content-Type:", contentType);
-
-    if (!contentType?.includes("application/json")) {
-      const text = await response.text();
-      console.error("GeoServer devolvió:", text.substring(0, 300));
-      return res.status(500).json({
-        error: "GeoServer no devolvió JSON",
-        details: text.substring(0, 200)
-=======
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Error WFS para ${workspace}:${layer}:`, response.status, errorText);
       return res.status(response.status).json({
         error: "No se pudo obtener el WFS",
         details: errorText.substring(0, 200)
->>>>>>> b041f47e0c8a5ca7bd900b52b1b6d2ac82ef3683:src/controllers/geoserver.controller.js
       });
     }
 
@@ -400,13 +381,8 @@ export const getWFS = async (req, res) => {
 
   } catch (error) {
     console.error("Error WFS:", error);
-<<<<<<< HEAD:controllers/geoserver.controller.js
-    return res.status(500).json({
-      error: "Error al obtener WFS",
-=======
     res.status(500).json({
       error: "Error al obtener datos WFS",
->>>>>>> b041f47e0c8a5ca7bd900b52b1b6d2ac82ef3683:src/controllers/geoserver.controller.js
       details: error.message
     });
   }
@@ -428,18 +404,10 @@ export const getWMS = async (req, res) => {
       queryParams.get("REQUEST") ||
       queryParams.get("request");
 
-<<<<<<< HEAD:controllers/geoserver.controller.js
-      // const url = `${geoserverHost}/${workspace}/wms?${queryParams.toString()}`;
-      const url = `${geoserverHost}/wms?${queryParams.toString()}`;
-      const response = await fetch(url);
-      const xml = await response.text();
-      return res.type("application/xml").send(xml);
-=======
     if (!requestType) {
       queryParams.set("SERVICE", "WMS");
       queryParams.set("VERSION", "1.1.1");
       queryParams.set("REQUEST", "GetCapabilities");
->>>>>>> b041f47e0c8a5ca7bd900b52b1b6d2ac82ef3683:src/controllers/geoserver.controller.js
     }
 
     if (
