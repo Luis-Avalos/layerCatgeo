@@ -6,6 +6,8 @@ import authRoutes from "../routes/authRoutes.js";
 import passwordResetRoutes from "../routes/passwordResetRoutes.js";
 import usuariosCatRoutes from "../routes/usuariosRoutes.js";
 import permisosRoutes from "../routes/permisos.routes.js";
+import weatherRoutes from "../routes/weather.routes.js";
+
 
 import { jwtAuth } from "../middlewares/jwtAuth.js";
 
@@ -19,9 +21,15 @@ app.use(cors({
 
 app.use(express.json());
 
+
 /*  RUTAS PUBLICAS*/
 app.use("/api/auth", authRoutes);
 app.use("/api/auth", passwordResetRoutes);
+
+/**RUTAS DE WEATHER LINK BOMBEROS */
+app.use("/api/weather", weatherRoutes);
+
+
 
 /* GEOSERVER SIN JWT */
 app.use("/api/geoserver", geoserverRoutes);
@@ -32,6 +40,7 @@ app.use("/api", jwtAuth);
 /* RUTAS PROTEGIDAS */
 app.use("/api/usuarios", usuariosCatRoutes);
 app.use("/api/permisos", permisosRoutes);
+
 
 app.get("/", (req, res) => {
   res.json({
