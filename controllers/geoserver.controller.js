@@ -411,7 +411,7 @@ export const getWMS = async (req, res) => {
     }
 
     if (
-      requestType?.toUpperCase() === "GETMAP" &&
+    requestType?.toUpperCase() === "GETMAP" &&
       !queryParams.has("LAYERS")
     ) {
       queryParams.set("LAYERS", `${workspace}:${layer}`);
@@ -421,7 +421,7 @@ export const getWMS = async (req, res) => {
 
     const response = await fetch(url, {
       headers: {
-        'Accept-Encoding': 'identity' // Evita problemas con content-encoding para poder manejar la respuesta correctamente
+        'Accept-Encoding': 'identity' 
       }
     });
 

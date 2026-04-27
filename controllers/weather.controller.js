@@ -17,7 +17,7 @@ export const getStations = async (req, res) => {
 
     const data = await response.json();
 
-    //  Limpieza (solo lo necesario)
+    //  Limpieza 
     const clean = data.stations?.map((station) => ({
       station_id: station.station_id,
       name: station.station_name,
