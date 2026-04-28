@@ -17,6 +17,7 @@ model usuarios_cat {
   fecha_registro  DateTime?         @default(now()) @db.Timestamp(6)
   rol             String?           @db.VarChar
   updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  noempleado      String?           @db.VarChar
   user_layers     user_layers[]
   user_workspaces user_workspaces[]
 }
@@ -35,9 +36,11 @@ model user_layers {
   workspace    String       @db.VarChar(100)
   layer        String       @db.VarChar(150)
   created_at   DateTime?    @default(now()) @db.Timestamp(6)
+  asignado_por Int?
   usuarios_cat usuarios_cat @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_layers_usuario")
 
   @@unique([usuario_id, workspace, layer], map: "uq_user_layer")
+  @@unique([usuario_id, workspace, layer], map: "user_layers_unique")
   @@index([usuario_id, workspace, layer], map: "idx_user_layers_lookup")
 }
 
@@ -49,5 +52,6 @@ model user_workspaces {
   usuarios_cat usuarios_cat @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_workspaces_usuario")
 
   @@unique([usuario_id, workspace], map: "uq_user_workspace")
+  @@unique([usuario_id, workspace], map: "user_workspaces_unique")
   @@index([usuario_id, workspace], map: "idx_user_workspaces_lookup")
 }
