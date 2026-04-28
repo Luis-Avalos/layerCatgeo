@@ -48,7 +48,7 @@ export const createUsuario = [
   upload.single("foto"),
   async (req, res) => {
     try {
-      const { nombre, apellido, email, password, rol } = req.body;
+      const { nombre, apellido, email, password, rol, noempleado } = req.body;
 
       if (!password || password.trim() === "") {
         return res.status(400).json({
@@ -81,6 +81,7 @@ export const createUsuario = [
           password_hash: hashed,
           rol,
           foto_perfil_url: fotoUrl,
+          noempleado,
         },
       });
 
@@ -121,6 +122,7 @@ export const updateUsuario = [
       apellido,
       email,
       password,
+      noempleado
     } = req.body;
 
     const data = {};
@@ -128,6 +130,7 @@ export const updateUsuario = [
     if (nombre) data.nombre = nombre;
     if (apellido) data.apellido = apellido;
     if (email) data.email = email;
+    if (noempleado) data.noempleado = noempleado;
 
     if (password) {
       data.password_hash = await bcrypt.hash(password, 10);
