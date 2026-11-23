@@ -123,6 +123,7 @@ const getWorkspacesFromCapabilities = async (req, res) => {
 };
 
 //listar layers por workspace
+//listar layers por workspace
 export const listLayers = async (req, res) => {
   try {
     const { workspace } = req.params;
@@ -132,108 +133,52 @@ export const listLayers = async (req, res) => {
       return res.status(500).json({ error: "GeoServer no está configurado" });
     }
 
-    if (!workspace) {
-      return res.status(400).json({ error: "Workspace no especificado" });
-    }
+    const auth = "Basic " + Buffer.from(
+      `${process.env.GEOSERVER_USER}:${process.env.GEOSERVER_PASSWORD}`
+    ).toString("base64");
 
-    const url = `${geoserverHost}/wms?service=WMS&version=1.1.1&request=GetCapabilities`;
-    const response = await fetch(url);
+    // 1. Listar datastores del workspace
+    const dsUrl = `${geoserverHost}/rest/workspaces/${workspace}/datastores.json`;
+    const dsRes = await fetch(dsUrl, { headers: { Authorization: auth } });
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: `Error al consultar GeoServer: ${response.status} ${response.statusText}`
+    if (!dsRes.ok) {
+      return res.status(dsRes.status).json({
+        error: `Error listando datastores: ${dsRes.status}`,
+        workspace
       });
     }
 
-    const xml = await response.text();
+    const dsData = await dsRes.json();
+    const datastores = dsData?.dataStores?.dataStore || [];
 
-    const parser = new xml2js.Parser({
-      explicitArray: true,
-      mergeAttrs: true,
-      explicitRoot: false
-    });
+    if (datastores.length === 0) {
+      return res.json({ success: true, count: 0, workspace, layers: [] });
+    }
 
-    const result = await parser.parseStringPromise(xml);
+    // 2. Para cada datastore, listar featuretypes
     const layers = [];
 
-    const findLayers = (node) => {
-      if (!node) return;
+    for (const ds of datastores) {
+      const ftUrl = `${geoserverHost}/rest/workspaces/${workspace}/datastores/${ds.name}/featuretypes.json`;
+      const ftRes = await fetch(ftUrl, { headers: { Authorization: auth } });
 
-      if (node.Name && node.Title) {
-        const name = Array.isArray(node.Name) ? node.Name[0] : node.Name;
-        const title = Array.isArray(node.Title) ? node.Title[0] : node.Title;
-
-        if (name && name.startsWith(`${workspace}:`)) {
-          layers.push({
-            name: name.replace(`${workspace}:`, ''),
-            fullName: name,
-            title: title || 'Sin título',
-            workspace: workspace
-          });
-        }
+      if (!ftRes.ok) {
+        console.warn(`No se pudieron leer featuretypes de ${ds.name}`);
+        continue;
       }
 
-      const subLayers = node.Layer || node.layer;
-      if (subLayers) {
-        const layerArray = Array.isArray(subLayers) ? subLayers : [subLayers];
-        layerArray.forEach(layer => findLayers(layer));
-      }
-    };
+      const ftData = await ftRes.json();
+      const featureTypes = ftData?.featureTypes?.featureType || [];
 
-    const possiblePaths = [
-      result?.WMS_Capabilities?.Capability?.[0]?.Layer,
-      result?.WMT_MS_Capabilities?.Capability?.[0]?.Layer,
-      result?.Capability?.[0]?.Layer,
-      result?.Layer
-    ];
-
-    for (const path of possiblePaths) {
-      if (path) {
-        const layerArray = Array.isArray(path) ? path : [path];
-        layerArray.forEach(layer => findLayers(layer));
-        break;
-      }
-    }
-
-
-    if (layers.length === 0) {
-      const traverseObject = (obj) => {
-        if (!obj || typeof obj !== 'object') return;
-
-        if (obj.Name && obj.Title) {
-          const name = Array.isArray(obj.Name) ? obj.Name[0] : obj.Name;
-          const title = Array.isArray(obj.Title) ? obj.Title[0] : obj.Title;
-
-          if (name && name.startsWith(`${workspace}:`)) {
-            layers.push({
-              name: name.replace(`${workspace}:`, ''),
-              fullName: name,
-              title: title || 'Sin título',
-              workspace: workspace
-            });
-          }
-        }
-
-        Object.values(obj).forEach(value => {
-          if (Array.isArray(value)) {
-            value.forEach(item => traverseObject(item));
-          } else if (typeof value === 'object') {
-            traverseObject(value);
-          }
+      for (const ft of featureTypes) {
+        layers.push({
+          name: ft.name,
+          fullName: `${workspace}:${ft.name}`,
+          title: ft.name,   // REST no da título directamente
+          workspace
         });
-      };
-
-      traverseObject(result);
+      }
     }
-
-    if (layers.length === 0) {
-      return res.status(404).json({
-        error: "No se encontraron capas para el workspace especificado",
-        workspace,
-        suggestion: "Verifica que el workspace exista y tenga capas publicadas"
-      });
-    }
-
 
     layers.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -252,99 +197,86 @@ export const listLayers = async (req, res) => {
     });
   }
 };
-
 //listar capas de los workspaces
 export const listAllLayers = async (req, res) => {
   try {
     const geoserverHost = process.env.GEOSERVER_HOST;
-    const url = `${geoserverHost}/wms?service=WMS&version=1.1.1&request=GetCapabilities`;
-    const response = await fetch(url);
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: `Error al consultar GeoServer: ${response.status} ${response.statusText}`
-      });
+    const auth = "Basic " + Buffer.from(
+      `${process.env.GEOSERVER_USER}:${process.env.GEOSERVER_PASSWORD}`
+    ).toString("base64");
+
+    // 1. Todos los workspaces
+    const wsRes = await fetch(`${geoserverHost}/rest/workspaces.json`, {
+      headers: { Authorization: auth }
+    });
+
+    if (!wsRes.ok) {
+      return res.status(wsRes.status).json({ error: "Error listando workspaces" });
     }
 
-    const xml = await response.text();
-    const parser = new xml2js.Parser({ explicitArray: true });
-    const result = await parser.parseStringPromise(xml);
+    const wsData = await wsRes.json();
+    const workspaces = wsData?.workspaces?.workspace || [];
 
-    const allLayers = [];
-    const workspacesMap = {};
+    const result = [];
+    let totalLayers = 0;
 
-    const findLayers = (node) => {
-      if (!node) return;
+    for (const ws of workspaces) {
+      // datastores
+      const dsRes = await fetch(
+        `${geoserverHost}/rest/workspaces/${ws.name}/datastores.json`,
+        { headers: { Authorization: auth } }
+      );
+      if (!dsRes.ok) continue;
 
-      if (node.Name && node.Title) {
-        const name = Array.isArray(node.Name) ? node.Name[0] : node.Name;
-        const title = Array.isArray(node.Title) ? node.Title[0] : node.Title;
+      const dsData = await dsRes.json();
+      const datastores = dsData?.dataStores?.dataStore || [];
 
-        if (name && name.includes(':')) {
-          const [workspace, layerName] = name.split(':');
+      const wsLayers = [];
 
-          if (!workspacesMap[workspace]) {
-            workspacesMap[workspace] = [];
-          }
+      for (const ds of datastores) {
+        const ftRes = await fetch(
+          `${geoserverHost}/rest/workspaces/${ws.name}/datastores/${ds.name}/featuretypes.json`,
+          { headers: { Authorization: auth } }
+        );
+        if (!ftRes.ok) continue;
 
-          workspacesMap[workspace].push({
-            name: layerName,
-            fullName: name,
-            title: title || 'Sin título',
-            workspace: workspace
+        const ftData = await ftRes.json();
+        const fts = ftData?.featureTypes?.featureType || [];
+
+        for (const ft of fts) {
+          wsLayers.push({
+            name: ft.name,
+            fullName: `${ws.name}:${ft.name}`,
+            title: ft.name,
+            workspace: ws.name
           });
         }
       }
 
-      const subLayers = node.Layer || node.layer;
-      if (subLayers) {
-        const layerArray = Array.isArray(subLayers) ? subLayers : [subLayers];
-        layerArray.forEach(layer => findLayers(layer));
-      }
-    };
+      wsLayers.sort((a, b) => a.name.localeCompare(b.name));
+      totalLayers += wsLayers.length;
 
-    const possiblePaths = [
-      result?.WMS_Capabilities?.Capability?.[0]?.Layer,
-      result?.WMT_MS_Capabilities?.Capability?.[0]?.Layer,
-      result?.Capability?.[0]?.Layer,
-      result?.Layer
-    ];
-
-    for (const path of possiblePaths) {
-      if (path) {
-        const layerArray = Array.isArray(path) ? path : [path];
-        layerArray.forEach(layer => findLayers(layer));
-        break;
-      }
+      result.push({
+        name: ws.name,
+        layers: wsLayers,
+        layerCount: wsLayers.length
+      });
     }
 
-    const workspaces = Object.keys(workspacesMap).map(workspaceName => ({
-      name: workspaceName,
-      layers: workspacesMap[workspaceName],
-      layerCount: workspacesMap[workspaceName].length
-    }));
-
-
-    workspaces.sort((a, b) => a.name.localeCompare(b.name));
-
-    Object.values(workspacesMap).forEach(layerArray => {
-      allLayers.push(...layerArray);
-    });
+    result.sort((a, b) => a.name.localeCompare(b.name));
 
     res.json({
       success: true,
-      totalWorkspaces: workspaces.length,
-      totalLayers: allLayers.length,
-      workspaces,
-      allLayers
+      totalWorkspaces: result.length,
+      totalLayers,
+      workspaces: result,
+      allLayers: result.flatMap(w => w.layers)
     });
 
   } catch (err) {
     console.error("Error listAllLayers:", err);
-    res.status(500).json({
-      error: "Error al listar todas las capas",
-      details: err.message
-    });
+    res.status(500).json({ error: err.message });
   }
 };
 
